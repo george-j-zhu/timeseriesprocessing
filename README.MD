@@ -1,4 +1,4 @@
-# Precessing timeseries problems using Regression
+# Processing timeseries problems using Regression
 This is a simple framework to process multi-variable timeseries dataset using regression.<br>
 
 Most time series analysis methods focus on single variable data. It's simple to understand<br>
@@ -8,7 +8,7 @@ of customers, but also depend on campaign, CM and so on.<br>
 It is harder to model such problems and often many of the classical methods do not perform<br>
 well.<br>
 
-Since regression methods are good at processing multivarible, we can simplely turn our timeseries<br>
+Since regression methods are good at processing multivarible, we can simply turn our timeseries<br>
 dataset into training dataset for regression by exluding time columns.<br>
 
 ## Restrictions
