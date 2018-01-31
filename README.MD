@@ -20,6 +20,8 @@ be avaliable to make predicitons.<br>
 2.Data at each time point must be independent.<br>
 3.Each independent variable must be unrelated. In many cases multi-variables regression analysis<br>
 fails to clarify the correlations between the variables.<br>
+* For detail about 2. and 3., see "Assumption of Independence".<br>
+[Here is a good explaination](http://www.statisticshowto.com/assumption-of-independence/)
 
 ## How to use
 See example.ipynb
