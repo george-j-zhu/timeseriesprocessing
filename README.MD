@@ -10,8 +10,8 @@ well.<br>
 
 Since regression methods are good at processing multivarible, we can simply turn our timeseries<br>
 dataset into training dataset for regression by exluding time columns. By doing that, we need<br>
-to make sure if data at each time point are independent. In another word, our dataset are not<br>
-affected by past data.<br>
+to make sure if data at each time point are independent. In another word, our dataset should not<br>
+be affected by past data.<br>
 
 ## Restrictions
 1.In general when using regression methods to make a prediction at a certain time point, data for<br>
@@ -24,4 +24,5 @@ fails to clarify the correlations between the variables.<br>
 [Here is a good explaination](http://www.statisticshowto.com/assumption-of-independence/)
 
 ## How to use
-See example.ipynb
+See [example.ipynb](https://github.com/george-j-zhu/timeseriesprocessing/blob/master/example.ipynb)<br>
+In the example, we used only weather data as our features to prediction Energy data from tepco.

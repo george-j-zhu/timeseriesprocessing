@@ -100,7 +100,7 @@ class TimeSeriesDataFrame:
         if self.x_columns is None:
             raise Exception
 
-        return self.dataframe.loc[:, self.x_columns]
+        return utilities.impute_missing_data(self.dataframe.loc[:, self.x_columns])
 
     def get_x_dataframe_with_time_column(self):
         """

@@ -28,7 +28,9 @@ MODEL_NAME_RANDOM_FOREST = "RandomForest"
 # penalty coefficiency(always positive)
 lamdaArray = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1.0, 3.0, 10]
 
-fp = FontProperties(fname='ipaexg.ttf', size=20)
+fp = FontProperties(family='monospace',
+                    #fname='ipaexg.ttf',
+                    size=20)
 
 sfont = {'fontproperties': fp, 'fontsize': 20, 'color': 'black'}
 
