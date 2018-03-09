@@ -24,5 +24,5 @@ fails to clarify the correlations between the variables.<br>
 [Here is a good explaination](http://www.statisticshowto.com/assumption-of-independence/)
 
 ## How to use
-See [example.ipynb](https://github.com/george-j-zhu/timeseriesprocessing/blob/master/example.ipynb)<br>
+See [example.html](https://github.com/george-j-zhu/timeseriesprocessing/blob/master/example.html)<br>
 In the example, we used only weather data as our features to prediction Energy data from tepco.
