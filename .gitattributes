@@ -1,2 +1,2 @@
-*.html linguist-vendored=false
-*.ipynb linguist-vendored=false
+*.html linguist-vendored
+*.ipynb linguist-vendored
