@@ -544,7 +544,7 @@ def create_plot(time_df, x_df, x_columns, x_colors,
 
     fig, ax1 = plt.subplots(figsize=(len(time_df)/3, 12))
     time_matrix = dates.date2num(
-        [datetime.strptime(t, "%Y/%m/%d %H:%M:%S") for t in time_df.as_matrix().transpose()[0]])
+        [datetime.strptime(t, "%Y/%m/%d %H:%M:%S") for t in time_df.values.transpose()[0]])
     for key in x_columns:
         if plot_mode == "plot":
             ax1.plot(time_matrix,
