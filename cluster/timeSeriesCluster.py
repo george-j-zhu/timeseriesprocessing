@@ -43,6 +43,9 @@ class TimeSeriesCluster:
     """
     Cluster class for time series data set.
     number of clusters can not be decided automatically.
+
+    Note:
+    As DBSCAN does not support predict and fit_predict, use get_labels instead.
     """
 
     def __init__(self, cluster_method_name, normalize=False, max_n_clusters=10, **params):
@@ -90,6 +93,7 @@ class TimeSeriesCluster:
         # the following parameters will be initialized during fitting.
         self.model = None
         self.normalize = normalize
+        self.scaler = None
 
         # TODO check necessary params for each algorithm.
 
@@ -131,7 +135,6 @@ class TimeSeriesCluster:
             eps = 0.5
             if "eps" in self.params:
                 eps = self.params["eps"]
-            self.model = cluster.DBSCAN(eps=eps)
             min_samples = 3
             if "min_samples" in self.params:
                 min_samples = self.params["min_samples"]
@@ -170,8 +173,7 @@ class TimeSeriesCluster:
             print("algorithm not supported!")
             return
 
-    def fit(self, train_x_with_time_df, plot_clusters=False,
-            dim_reduction_method=DIM_REDUCTION_METHOD_TSNE, perplexity=30):
+    def fit(self, train_x_with_time_df):
         """
         fit the model by the training data.
 
@@ -184,7 +186,8 @@ class TimeSeriesCluster:
 
         train_x_without_time_matrix = None
         if self.normalize is True:
-            train_x_without_time_matrix = preprocessing.StandardScaler().fit_transform(
+            self.scaler = preprocessing.MinMaxScaler(copy=True, feature_range=(-0.5, 0.5))
+            train_x_without_time_matrix = self.scaler.fit_transform(
                 train_x_without_time_df)
         else:
             train_x_without_time_matrix = train_x_without_time_df.values
@@ -192,12 +195,8 @@ class TimeSeriesCluster:
         self.__init_model(train_x_without_time_matrix)
         self.model.fit(train_x_without_time_matrix)
 
-        if plot_clusters is True:
-            self.__plot_clusters_onto_2D(self.model, train_x_without_time_matrix,
-                                         dim_reduction_method=dim_reduction_method,
-                                         perplexity=perplexity, plot=plot_clusters)
-
-    def predict(self, test_x_with_time_df):
+    def predict(self, test_x_with_time_df, plot_clusters=False,
+                dim_reduction_method=DIM_REDUCTION_METHOD_TSNE, perplexity=30):
         """
         make predictions.
         as algorithms that are not based on centroid methods have no centroids, it makes sense to reclustering.
@@ -209,7 +208,21 @@ class TimeSeriesCluster:
         test_x_without_time_df = test_x_with_time_df.copy()
         ret = test_x_with_time_df.copy()
         del test_x_without_time_df["time"]
-        predictions_array = self.model.predict(test_x_without_time_df.values)
+
+        if hasattr(self.model, 'predict'):
+            if self.normalize is True:
+                test_x_without_time_matrix = self.scaler.transform(test_x_without_time_df)
+            else:
+                test_x_without_time_matrix = test_x_without_time_df.values
+            predictions_array = self.model.predict(test_x_without_time_matrix)
+        else:
+            raise ValueError("Select clustering method does not support predicting.")
+
+        if plot_clusters is True:
+            self.__plot_clusters_onto_2D(self.model, test_x_without_time_matrix,
+                                         dim_reduction_method=dim_reduction_method,
+                                         perplexity=perplexity, plot=plot_clusters)
+
         # combine predictions_array, self.test_x_with_time_df as a new dataframe.
         ret["cluster_id"] = predictions_array
         return ret
@@ -231,13 +244,20 @@ class TimeSeriesCluster:
 
         train_x_without_time_matrix = None
         if self.normalize is True:
-            train_x_without_time_matrix = preprocessing.StandardScaler().fit_transform(
+            self.scaler = preprocessing.MinMaxScaler(copy=True, feature_range=(-0.5, 0.5))
+            train_x_without_time_matrix = self.scaler.fit_transform(
                 train_x_without_time_df)
         else:
             train_x_without_time_matrix = train_x_without_time_df.values
 
         self.__init_model(train_x_without_time_matrix)
-        predictions_array = self.model.fit_predict(train_x_without_time_matrix)
+        self.model.fit(train_x_without_time_matrix)
+
+        if hasattr(self.model, 'predict'):
+            predictions_array = self.model.predict(train_x_without_time_matrix)
+        else:
+            raise ValueError("Select clustering method does not support predicting.")
+
         if plot_clusters is True:
             self.__plot_clusters_onto_2D(self.model, train_x_without_time_matrix,
                                          dim_reduction_method=dim_reduction_method,
@@ -339,12 +359,20 @@ class TimeSeriesCluster:
                 print("algorithm name: " + self.method_name)
                 return
 
-            self.__plot_clusters_onto_2D(clusterer, X.values, dim_reduction_method=dim_reduction_method,
+            if self.normalize is True:
+                self.scaler = preprocessing.MinMaxScaler(copy=True, feature_range=(-0.5, 0.5))
+                X_matrix = self.scaler.fit_transform(X)
+                clusterer.fit(self.scaler.fit_transform(X))
+            else:
+                X_matrix = X.values
+
+            clusterer.fit(X_matrix)
+            self.__plot_clusters_onto_2D(clusterer, X_matrix, dim_reduction_method=dim_reduction_method,
                                          perplexity=perplexity, plot=plot)
 
 
-    def __plot_clusters_onto_2D(self, clusterer, X, dim_reduction_method,
-                                perplexity=30, plot=False):
+    def plot_clusters_onto_2D(self, data_df, dim_reduction_method="t-SNE",
+                              perplexity=30, plot=False):
         """
         For high dimensional data, use t-SNE to reduce the dimensionality and plot result
         on a 2D plane.
@@ -354,8 +382,37 @@ class TimeSeriesCluster:
                         larger perplexity. Consider selecting a value between 5 and 50. The choice
                         is not extremely critical since t-SNE is quite insensitive to this parameter.
         """
-        clusterer.fit(X)
-        cluster_labels = clusterer.labels_
+        data_without_time_df = data_df.copy()
+        del data_without_time_df["time"]
+
+        data_without_time_matrix = None
+        if self.normalize is True:
+            if self.scaler is None:
+                raise ValueError("Call fit or fit_predict first!")
+
+            data_without_time_matrix = self.scaler.fit_transform(data_without_time_df)
+        else:
+            data_without_time_matrix = data_without_time_df.values
+
+        self.__plot_clusters_onto_2D(self.model, data_without_time_matrix, dim_reduction_method,
+                                     perplexity=perplexity, plot=plot)
+
+    def __plot_clusters_onto_2D(self, clusterer, X, dim_reduction_method,
+                                perplexity, plot=False):
+        """
+        For high dimensional data, use t-SNE to reduce the dimensionality and plot result
+        on a 2D plane.
+        Args:
+            perplexity: The perplexity is related to the number of nearest neighbors that is used
+                        in other manifold learning algorithms. Larger datasets usually require a
+                        larger perplexity. Consider selecting a value between 5 and 50. The choice
+                        is not extremely critical since t-SNE is quite insensitive to this parameter.
+        """
+
+        if hasattr(clusterer, 'predict'):
+            cluster_labels = clusterer.predict(X)
+        else:
+            cluster_labels = clusterer.labels_
         if len(set(cluster_labels)) == 1:
             print("clustering failed. unable to group data into two more clusters.")
             return
@@ -370,6 +427,7 @@ class TimeSeriesCluster:
               "The average silhouette_score is :", silhouette_avg)
 
         if plot is True:
+            cmap = cm.get_cmap("CMRmap")
             # Create a subplot with 1 row and 2 columns
             fig, (ax1, ax2) = plt.subplots(1, 2)
             fig.set_size_inches(18, 7)
@@ -397,7 +455,9 @@ class TimeSeriesCluster:
                 size_cluster_i = ith_cluster_silhouette_values.shape[0]
                 y_upper = y_lower + size_cluster_i
 
-                color = cm.spectral(float(i) / n_clusters)
+                # cm.spectral has been removed since matplotlib 2.2
+                #color = cm.spectral(float(i) / n_clusters)
+                color = cmap(float(i) / n_clusters)
                 ax1.fill_betweenx(np.arange(y_lower, y_upper),
                                   0, ith_cluster_silhouette_values,
                                   facecolor=color, edgecolor=color, alpha=0.7)
@@ -431,7 +491,7 @@ class TimeSeriesCluster:
                     X = tsne.fit_transform(X)
 
             # 2nd Plot showing the actual clusters formed
-            colors = cm.spectral(cluster_labels.astype(float) / n_clusters)
+            colors = cmap(cluster_labels.astype(float) / n_clusters)
             ax2.scatter(X[:, 0], X[:, 1], marker='.', s=100, lw=0, alpha=0.7,
                         c=colors, edgecolor='k')
 
